@@ -38,7 +38,7 @@ class RestructuredPromptService:
         try:
             # TODO: Migrate the database driver to async because this method alone requires async job.
             if use_ai:
-                st_prompt = self.psystem.create_prompt_using_ai(prompt_data=prompt_data)
+                st_prompt = self.psystem.create_prompt_using_ai(prompt_data=prompt_data, use_ai=use_ai)
             else:
                 st_prompt = self.psystem.create_prompt_normal_way(
                     prompt_data=prompt_data
@@ -222,11 +222,12 @@ class PromptSystem:
             structured_prompt=structured, natural_prompt=natural, details=prompt_data
         )
 
-    def create_prompt_using_ai(self, prompt_data: PromptSchema) -> PromptSchemaOutput:
+    def create_prompt_using_ai(self, prompt_data: PromptSchema, use_ai: bool = False) -> PromptSchemaOutput:
         """
         Generate a structured and natural prompt using an AI model (e.g., OllamaClient).
         Args:
             prompt_data (PromptSchema): The input data for prompt creation.
+            use_ai (bool): Whether AI generation is enabled (verified users only).
         Returns:
             PromptSchemaOutput: The structured and natural prompt output.
         """
@@ -238,6 +239,11 @@ class PromptSystem:
             prompt_data.output,
             prompt_data.personality,
         )
+
+        # If use_ai is False, don't attempt AI generation
+        if not use_ai:
+            lg.debug("AI generation disabled. Using normal prompt generation.")
+            return self.create_prompt_normal_way(prompt_data)
 
         try:
             client = OllamaClient()

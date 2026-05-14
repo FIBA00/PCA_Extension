@@ -1,9 +1,13 @@
 import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+
+
 from db.models import StructuredPrompts
 from core.schemas import PromptSchema, PromptSchemaOutput
 from utility.logger import get_logger
+
+
 from core.ollama_client import OllamaClient
 from core.celery_tasks import send_prompt_to_ai
 from core.config import settings
@@ -410,7 +414,7 @@ class PromptSystem:
             )
 
         except Exception as e:
-            lg.error(f"Error in create_prompt_using_ai: {str(e)}")
+            lg.error(f"Error in create prompt using ai: {str(e)}")
             return self.create_prompt_normal_way(prompt_data)
 
     def build_structured_prompt(self, role, task, constraints, output, personality):

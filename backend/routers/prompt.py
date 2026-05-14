@@ -49,7 +49,7 @@ def create_new_prompt(
     prompt_data: PromptSchema,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: Optional[TokenData] = Depends(get_optional_current_user),
+    current_user: Optional[TokenData] = Depends(get_current_user),
 ) -> Union[PromptSchemaOutput, PromptTaskResponse]:
     """
     Create a new prompt and its structured version.

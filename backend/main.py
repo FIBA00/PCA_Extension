@@ -14,6 +14,8 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
+from contextlib import asynccontextmanager
+
 from redis import asyncio as aioredis
 from sqladmin import Admin
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -33,16 +35,18 @@ REDIS_URL = settings.REDIS_URL
 
 STATIC_FRONTEND_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / "static"
 TEMPLATES_DIR = STATIC_FRONTEND_DIR / "sqladmin"
+
+
 # our app
 description = """
-A RESTful API for a AI prompt restructing system.
+    A RESTful API for a AI prompt restructing system.
 
-## Prompts
-* You can **create**, **read**, **update**, and **delete** prompts.
+    ## Prompts
+    * You can **create**, **read**, **update**, and **delete** prompts.
 
-## Users
-* **Create** and **Login** users (JWT Auth).
-* **Password Reset** and **Email Verification**.
+    ## Users
+    * **Create** and **Login** users (JWT Auth).
+    * **Password Reset** and **Email Verification**.
 
 """
 version = settings.VERSION or "v1.1"
@@ -54,7 +58,7 @@ tags_metadata = [
     },
     {
         "name": "user",
-        "description": "Manages reviews added to books.",
+        "description": "Manages users and their authentication.",
     },
 ]
 
@@ -77,13 +81,25 @@ app = FastAPI(
     redoc_url=f"/api/{settings.VERSION or version}/redoc",
 )
 
+# Use lifespan instead of deprecated startup event
 
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     redis = aioredis.from_url(
         settings.REDIS_URL, encoding="utf8", decode_responses=True
     )
     FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+    try:
+        yield
+    finally:
+        try:
+            await redis.close()
+            await redis.wait_closed()
+        except Exception:
+            pass
+
+
+app.router.lifespan_context = lifespan
 
 
 # --- Global Exception Handling ---

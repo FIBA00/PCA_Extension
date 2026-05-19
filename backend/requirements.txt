@@ -65,7 +65,7 @@ click-plugins==1.1.1.2
     # via celery
 click-repl==0.3.0
     # via celery
-cryptography==46.0.5
+cryptography==46.0.7
     # via fastapi-mail
 dnspython==2.8.0
     # via email-validator
@@ -113,7 +113,7 @@ httpx==0.28.1
     #   backend (pyproject.toml)
     #   fastapi
     #   fastapi-cloud-cli
-idna==3.11
+idna==3.15
     # via
     #   anyio
     #   email-validator
@@ -192,18 +192,18 @@ pyjwt==2.11.0
     # via backend (pyproject.toml)
 pypika-tortoise==0.6.3
     # via tortoise-orm
-pytest==9.0.2
+pytest==9.0.3
     # via backend (pyproject.toml)
 python-dateutil==2.9.0.post0
     # via
     #   celery
     #   pendulum
-python-dotenv==1.2.1
+python-dotenv==1.2.2
     # via
     #   backend (pyproject.toml)
     #   pydantic-settings
     #   uvicorn
-python-multipart==0.0.22
+python-multipart==0.0.27
     # via
     #   fastapi
     #   fastapi-admin
@@ -218,7 +218,7 @@ redis==4.6.0
     # via fastapi-cache2
 regex==2025.11.3
     # via fastapi-mail
-requests==2.32.5
+requests==2.33.0
     # via backend (pyproject.toml)
 rich==14.3.2
     # via
@@ -280,9 +280,9 @@ tzdata==2025.3
     #   pendulum
 tzlocal==5.3.1
     # via celery
-ujson==5.12.0
+ujson==5.12.1
     # via fastapi
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   requests
     #   sentry-sdk

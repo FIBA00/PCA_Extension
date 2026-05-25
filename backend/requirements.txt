@@ -236,7 +236,7 @@ shellingham==1.5.4
     # via typer
 six==1.17.0
     # via python-dateutil
-sqladmin==0.23.0
+sqladmin==0.25.1
     # via backend (pyproject.toml)
 sqlalchemy==2.0.46
     # via

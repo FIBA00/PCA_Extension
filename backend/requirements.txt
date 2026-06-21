@@ -65,7 +65,7 @@ click-plugins==1.1.1.2
     # via celery
 click-repl==0.3.0
     # via celery
-cryptography==46.0.7
+cryptography==48.0.1
     # via fastapi-mail
 dnspython==2.8.0
     # via email-validator
@@ -179,7 +179,7 @@ pydantic-core==2.41.5
     # via pydantic
 pydantic-extra-types==2.11.0
     # via fastapi
-pydantic-settings==2.12.0
+pydantic-settings==2.14.2
     # via
     #   backend (pyproject.toml)
     #   fastapi
@@ -188,7 +188,7 @@ pygments==2.19.2
     # via
     #   pytest
     #   rich
-pyjwt==2.11.0
+pyjwt==2.13.0
     # via backend (pyproject.toml)
 pypika-tortoise==0.6.3
     # via tortoise-orm
@@ -203,7 +203,7 @@ python-dotenv==1.2.2
     #   backend (pyproject.toml)
     #   pydantic-settings
     #   uvicorn
-python-multipart==0.0.27
+python-multipart==0.0.31
     # via
     #   fastapi
     #   fastapi-admin
@@ -243,7 +243,7 @@ sqlalchemy==2.0.46
     #   backend (pyproject.toml)
     #   alembic
     #   sqladmin
-starlette==0.50.0
+starlette==1.3.1
     # via
     #   fastapi
     #   fastapi-mail
@@ -280,7 +280,7 @@ tzdata==2025.3
     #   pendulum
 tzlocal==5.3.1
     # via celery
-ujson==5.12.1
+ujson==5.13.0
     # via fastapi
 urllib3==2.7.0
     # via

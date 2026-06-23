@@ -7,7 +7,7 @@ from core.schemas import PromptSchema, PromptSchemaOutput
 from utility.logger import get_logger
 
 from systems.prompt_system import PromptSystem
-from core.celery_tasks import send_prompt_to_ai
+# from core.celery_tasks import send_prompt_to_ai  # commented out - async AI flow disabled
 
 lg = get_logger(script_path=__file__)
 
@@ -41,28 +41,46 @@ class RestructuredPromptService:
             PromptSchemaOutput: The generated structured and natural prompt.
         """
         try:
-            st_prompt = self.psystem.create_prompt_using_ai(prompt_data=prompt_data)
-            
-            # Async AI Flow
+            # st_prompt = self.psystem.create_prompt_using_ai(prompt_data=prompt_data)
+
+            # # Async AI Flow
+            # prompt_id = str(uuid.uuid4())
+            # natural = self.psystem.build_natural_prompt(
+            #     prompt_data.role,
+            #     prompt_data.task,
+            #     prompt_data.constraints,
+            #     prompt_data.output,
+            #     prompt_data.personality,
+            # )
+
+            # # Create Pending Object
+            # st_prompt = PromptSchemaOutput(
+            #     structured_prompt_id=prompt_id,
+            #     structured_prompt=None,
+            #     natural_prompt=natural,
+            #     status="PENDING",
+            #     details=prompt_data,
+            # )
+
+            # # Save immediately to DB with PENDING status
+            # # self.save_structured_prompt(
+            # #     structured_prompt=st_prompt,
+            # #     db=db,
+            # #     author_id=prompt_data.author_id,
+            # #     original_prompt_id=prompt_data.prompt_id,
+            # #     prompt_id=prompt_id,
+            # # )
+
+            # # Prepare and Dispatch Celery Task
+            # messages = self.psystem.prepare_ai_messages(prompt_data)
+            # send_prompt_to_ai.delay(messages=messages, prompt_id=prompt_id)
+
+            # if not st_prompt:
+            # Synchronous Normal Flow
             prompt_id = str(uuid.uuid4())
-            natural = self.psystem.build_natural_prompt(
-                prompt_data.role,
-                prompt_data.task,
-                prompt_data.constraints,
-                prompt_data.output,
-                prompt_data.personality,
-            )
+            st_prompt = self.psystem.create_prompt_normal_way(prompt_data=prompt_data)
+            st_prompt.structured_prompt_id = prompt_id
 
-            # Create Pending Object
-            st_prompt = PromptSchemaOutput(
-                structured_prompt_id=prompt_id,
-                structured_prompt=None,
-                natural_prompt=natural,
-                status="PENDING",
-                details=prompt_data,
-            )
-
-            # Save immediately to DB with PENDING status
             # self.save_structured_prompt(
             #     structured_prompt=st_prompt,
             #     db=db,
@@ -70,26 +88,6 @@ class RestructuredPromptService:
             #     original_prompt_id=prompt_data.prompt_id,
             #     prompt_id=prompt_id,
             # )
-
-            # Prepare and Dispatch Celery Task
-            messages = self.psystem.prepare_ai_messages(prompt_data)
-            send_prompt_to_ai.delay(messages=messages, prompt_id=prompt_id)
-
-            if not st_prompt:
-                # Synchronous Normal Flow
-                prompt_id = str(uuid.uuid4())
-                st_prompt = self.psystem.create_prompt_normal_way(
-                    prompt_data=prompt_data
-                )
-                st_prompt.structured_prompt_id = prompt_id
-
-                self.save_structured_prompt(
-                    structured_prompt=st_prompt,
-                    db=db,
-                    author_id=prompt_data.author_id,
-                    original_prompt_id=prompt_data.prompt_id,
-                    prompt_id=prompt_id,
-                )
 
             return st_prompt
         except Exception as e:

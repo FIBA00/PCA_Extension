@@ -12,7 +12,7 @@ Note:
 
 import uuid
 from typing import Union
-from fastapi import APIRouter, status, Depends, Request
+from fastapi import APIRouter, status, Depends, Request, HTTPException
 
 from core.schemas import PromptSchema, PromptSchemaOutput, PromptTaskResponse
 from sqlalchemy.orm import Session
@@ -23,7 +23,6 @@ from utility.logger import get_logger
 
 
 router = APIRouter(prefix="/pcrafter", tags=["prompts"])
-# router.mount("/static", StaticFiles(directory="static"), name="static")
 prompt_service = PromptService()
 st_prompt_service = RestructuredPromptService()
 lg = get_logger(__file__)
@@ -38,26 +37,26 @@ author_id = str(uuid.uuid4())
 @router.post(
     "/process",
     status_code=status.HTTP_200_OK,
-    response_model=Union[PromptSchemaOutput, PromptTaskResponse, PromptSchema],
+    response_model=PromptSchemaOutput,
 )
 def create_new_prompt(
     prompt_data: PromptSchema,
     request: Request,
     db: Session = Depends(get_db),
-) -> Union[PromptSchemaOutput, PromptTaskResponse, PromptSchema]:
+) -> PromptSchemaOutput:
     """
     Create a new prompt and its structured version.
 
     Returns the structured prompt if created, otherwise returns the original prompt.
     """
-    # Attempt to create structured prompt
+    # Attempt to create structured prompt (synchronous normal flow)
     st_prompt = st_prompt_service.create_structured_prompt(
         db=db, prompt_data=prompt_data
     )
     if st_prompt:
-        return PromptTaskResponse(
-            prompt_id=st_prompt.structured_prompt_id,
-            status=st_prompt.status,
-        )
-    else:
         return st_prompt
+
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Failed to generate structured prompt.",
+    )

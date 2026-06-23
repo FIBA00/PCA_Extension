@@ -348,15 +348,15 @@ class UserService:
             }
         }
 
-        flow = Flow.from_client_config(
-            client_config=client_config,
-            scopes=[
-                "openid",
-                "https://www.googleapis.com/auth/userinfo.email",
-                "https://www.googleapis.com/auth/userinfo.profile",
-            ],
-            redirect_uri=settings.GOOGLE_REDIRECT_URI,
-        )
+        # Retrieve the Flow object saved during login initiation using the state parameter
+        parsed = urllib.parse.urlparse(request_url)
+        query_params = urllib.parse.parse_qs(parsed.query)
+        state = query_params.get("state", [None])[0]
+        if not state:
+            raise HTTPException(status_code=400, detail="Missing state parameter")
+        flow = _google_flow_cache.pop(state, None)
+        if not flow:
+            raise HTTPException(status_code=400, detail="Invalid or expired OAuth state")
 
         try:
             flow.fetch_token(authorization_response=request_url)

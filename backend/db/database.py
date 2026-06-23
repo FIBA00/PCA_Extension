@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 from core.config import settings
+from fastapi import HTTPException
 from utility.logger import get_logger
 
 lg = get_logger(__file__)
@@ -34,6 +35,9 @@ def get_db():
     db = SessionLocal()
     try:
         yield db
+    except HTTPException as http_exc:
+        # Re-raise authentication errors without logging to avoid console noise
+        raise http_exc
     except Exception as e:
         lg.error(f"Database Session Error: {e}")
         db.rollback()

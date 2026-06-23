@@ -12,8 +12,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisBackend
+
+
 from contextlib import asynccontextmanager
 
 from redis import asyncio as aioredis
@@ -88,7 +88,8 @@ async def lifespan(app: FastAPI):
     redis = aioredis.from_url(
         settings.REDIS_URL, encoding="utf8", decode_responses=True
     )
-    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+    # FastAPICache disabled (not installed)
+    # FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
     try:
         yield
     finally:

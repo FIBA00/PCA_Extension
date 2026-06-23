@@ -7,8 +7,7 @@ from db.models import StructuredPrompts
 from core.schemas import PromptSchema, PromptSchemaOutput
 from utility.logger import get_logger
 
-
-from core.ollama_client import OllamaClient
+from systems.promptsystem import PromptSystem
 from core.celery_tasks import send_prompt_to_ai
 from core.config import settings
 

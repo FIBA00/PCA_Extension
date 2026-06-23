@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
     GOOGLE_REDIRECT_URI: str
+    OLLAMA_HOST: str
+    OLLAMA_MODEL: str
+    OLLAMA_TIMEOUT: int
 
     class Config:
         # Construct absolute path to .env file in the backend root directory

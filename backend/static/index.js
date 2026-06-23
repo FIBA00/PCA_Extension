@@ -56,7 +56,32 @@ function getDisplayName(email) {
 }
 
 function setLoggedIn(user) {
-    loginBtn.style.display = "none";
+    // Change signup button to logout after successful authentication
+    loginBtn.textContent = "Logout";
+    loginBtn.style.display = "inline-block";
+    // Attach logout handler to the same button
+    loginBtn.onclick = () => {
+        fetch(`${USER_API}/logout`, {
+            method: "POST",
+            credentials: "include",
+        }).then((response) => {
+            if (response.ok) {
+                sessionStorage.removeItem("access_token");
+                sessionStorage.removeItem("refresh_token");
+                sessionStorage.removeItem("user");
+                setLoggedOut();
+                showToast("Logged out successfully");
+                // Reload to reset UI state
+                window.location.reload();
+            } else {
+                alert("Logout failed");
+            }
+        }).catch((error) => {
+            console.error("Logout error:", error);
+            alert("An error occurred during logout");
+        });
+    };
+    // Show profile information
     profileBtn.disabled = false;
     profileName.textContent = getDisplayName(user.email);
     profileEmail.textContent = user.email;
@@ -64,15 +89,15 @@ function setLoggedIn(user) {
     profilePlan.textContent = user.plan || "Free";
     profileInitials.textContent = getInitials(user.email);
     profileMenu.style.display = "none";
-
     const pending = sessionStorage.getItem("loginPending");
     if (pending) {
-        showToast("Login successful");
+        showToast("Account created successfully");
         sessionStorage.removeItem("loginPending");
     }
 }
 
 function setLoggedOut() {
+    loginBtn.textContent = "Login / Sign Up";
     loginBtn.style.display = "inline-block";
     profileBtn.disabled = true;
     profileName.textContent = "Guest";

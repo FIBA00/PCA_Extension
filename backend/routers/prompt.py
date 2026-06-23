@@ -43,44 +43,26 @@ ANONYMOUS_USER_ID = "00000000-0000-0000-0000-000000000000"
 @router.post(
     "/process",
     status_code=status.HTTP_200_OK,
-    response_model=Union[PromptSchemaOutput, PromptTaskResponse],
+    response_model=Union[PromptSchemaOutput, PromptTaskResponse, PromptSchema],
 )
 def create_new_prompt(
     prompt_data: PromptSchema,
     request: Request,
     db: Session = Depends(get_db),
     current_user: Optional[TokenData] = Depends(get_current_user),
-) -> Union[PromptSchemaOutput, PromptTaskResponse]:
+) -> Union[PromptSchemaOutput, PromptTaskResponse, PromptSchema]:
     """
     Create a new prompt and its structured version.
 
-    This endpoint receives prompt data, saves it to the database, and then creates a structured version
-    of the prompt. If successful, returns the structured prompt. If the structured prompt creation fails,
-    raises a PromptNotModified exception.
-
-    Args:
-        prompt_data (PromptSchema): The prompt data to be saved.
-        db (Session, optional): SQLAlchemy database session dependency.
-        current_user (User, optional): The currently authenticated user dependency.
-
-    Returns:
-        Union[PromptSchemaOutput, PromptTaskResponse]: The structured prompt data or task info.
-
-    Raises:
-        PromptNotModified: If the structured prompt creation fails.
+    Returns the structured prompt if created, otherwise returns the original prompt.
     """
-    # TODO: implement ai based prompt creation , split logic here, where
-    #  only verified users can access and the rest uses normal one
-
     author_id = current_user.user_id if current_user else ANONYMOUS_USER_ID
     use_ai = current_user.is_verified if current_user else False
 
-    # Rate Limiting Logic
+    # Rate limiting
     if current_user and current_user.is_verified:
-        # Check and deduct token before processing for verified users
         user_service.check_daily_limit(db=db, user_id=current_user.user_id, cost=1)
     elif not current_user:
-        # Rate limit for anonymous users: 3 prompts per IP per day
         redis = Redis.from_url(settings.REDIS_URL)
         client_ip = request.client.host
         key = f"anonymous_limit:{client_ip}"
@@ -91,34 +73,30 @@ def create_new_prompt(
                 detail="Rate limit exceeded for anonymous users. Please login to continue using the service."
             )
         redis.incr(key)
-        redis.expire(key, 86400)  # Expire in 1 day
-    # Ensure anonymous user exists if applicable
+        redis.expire(key, 86400)
+
+    # Ensure anonymous user exists
     if author_id == ANONYMOUS_USER_ID:
         user_service.get_or_create_anonymous_user(db=db, anonymous_id=ANONYMOUS_USER_ID)
-    # Ensure anonymous user exists if applicable
-    if author_id == ANONYMOUS_USER_ID:
         user_service.ensure_anonymous_user(db=db, user_id=ANONYMOUS_USER_ID)
 
-    new_prompt = prompt_service.save_prompt(
-        db=db, prompt_data=prompt_data, author_id=author_id
-    )
+    # Save original prompt
+    new_prompt = prompt_service.save_prompt(db=db, prompt_data=prompt_data, author_id=author_id)
     lg.debug(f"Original prompt: {new_prompt}")
-    if new_prompt:
-        st_prompt = st_prompt_service.create_structured_prompt(
-            db=db, prompt_data=new_prompt, use_ai=use_ai
-        )
-        # lg.debug(f"Restructured prompt: {st_prompt}")
-        if st_prompt is not None:
-            if use_ai:
-                return PromptTaskResponse(
-                    prompt_id=st_prompt.structured_prompt_id,
-                    status=st_prompt.status,
-                )
-            return st_prompt
 
-    else:
-        # if the structured prompt creation fails, we can still return the original prompt data
-        raise PromptNotModified
+    # Attempt to create structured prompt
+    st_prompt = st_prompt_service.create_structured_prompt(
+        db=db, prompt_data=new_prompt, use_ai=use_ai
+    )
+    if st_prompt:
+        if use_ai:
+            return PromptTaskResponse(
+                prompt_id=st_prompt.structured_prompt_id,
+                status=st_prompt.status,
+            )
+        return st_prompt
+    # Fallback: return the original prompt data
+    return new_prompt
 
 
 @router.get(

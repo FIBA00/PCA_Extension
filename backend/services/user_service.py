@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+import urllib.parse
 
 
 from core.schemas import UserCreateSchema, UserOutSchema
@@ -26,8 +27,37 @@ import os
 
 lg = get_logger(__file__)
 
+_google_flow_cache = {}
+
 
 class UserService:
+    def get_google_login_url(self):
+        client_config = {
+            "web": {
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
+            }
+        }
+        flow = Flow.from_client_config(
+            client_config=client_config,
+            scopes=[
+                "openid",
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/userinfo.profile",
+            ],
+            redirect_uri=settings.GOOGLE_REDIRECT_URI,
+        )
+        authorization_url, state = flow.authorization_url(
+            access_type="offline", include_granted_scopes="true"
+        )
+        _google_flow_cache[state] = flow
+        return authorization_url
+
+    # Duplicate simple process_google_auth removed; use main implementation below
+
     def get_or_create_anonymous_user(self, db: Session, anonymous_id: str):
         try:
             user = db.query(User).filter(User.user_id == anonymous_id).first()
@@ -37,9 +67,11 @@ class UserService:
                     user_id=anonymous_id,
                     username="Anonymous",
                     email="anonymous@promptcrafter.local",
-                    password=hash_password("anonymous_secret_dummy_password"),  # Needs a dummy password
+                    password=hash_password(
+                        "anonymous_secret_dummy_password"
+                    ),  # Needs a dummy password
                     is_verified=False,
-                    is_admin=False
+                    is_admin=False,
                 )
                 db.add(new_user)
                 db.commit()
@@ -146,7 +178,7 @@ class UserService:
                     email="anonymous@guest.com",
                     password=hash_password("anonymous"),
                     is_verified=False,
-                    is_admin=False
+                    is_admin=False,
                 )
                 db.add(anon_user)
                 db.commit()
@@ -301,32 +333,6 @@ class UserService:
             db.rollback()
             lg.error(f"Error invalidating all refresh tokens: {str(e)}")
             raise e
-
-    def get_google_login_url(self):
-        client_config = {
-            "web": {
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
-            }
-        }
-
-        flow = Flow.from_client_config(
-            client_config=client_config,
-            scopes=[
-                "openid",
-                "https://www.googleapis.com/auth/userinfo.email",
-                "https://www.googleapis.com/auth/userinfo.profile",
-            ],
-            redirect_uri=settings.GOOGLE_REDIRECT_URI,
-        )
-
-        authorization_url, _ = flow.authorization_url(
-            access_type="offline", include_granted_scopes="true"
-        )
-        return authorization_url
 
     def process_google_auth(self, request_url: str, db: Session):
         # Allow http for local testing

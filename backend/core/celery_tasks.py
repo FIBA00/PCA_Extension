@@ -1,8 +1,7 @@
 from celery import Celery
-from asgiref.sync import async_to_sync
 
 from utility.logger import get_logger
-from core.ollama_client import OllamaClient
+from systems.ollama_client import OllamaClient
 from db.database import SessionLocal
 from db.models import StructuredPrompts
 

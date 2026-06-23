@@ -7,9 +7,8 @@ from db.models import StructuredPrompts
 from core.schemas import PromptSchema, PromptSchemaOutput
 from utility.logger import get_logger
 
-from systems.promptsystem import PromptSystem
+from systems.prompt_system import PromptSystem
 from core.celery_tasks import send_prompt_to_ai
-from core.config import settings
 
 lg = get_logger(script_path=__file__)
 

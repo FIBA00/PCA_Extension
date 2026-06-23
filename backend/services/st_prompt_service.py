@@ -2,7 +2,6 @@ import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
-
 from db.models import StructuredPrompts
 from core.schemas import PromptSchema, PromptSchemaOutput
 from utility.logger import get_logger
@@ -27,7 +26,9 @@ class RestructuredPromptService:
         self.psystem = PromptSystem()
 
     def create_structured_prompt(
-        self, db: Session, prompt_data: PromptSchema, use_ai: bool = False
+        self,
+        db: Session,
+        prompt_data: PromptSchema,
     ):
         """
         Create a structured prompt using the provided prompt data and save it to the database.
@@ -40,43 +41,41 @@ class RestructuredPromptService:
             PromptSchemaOutput: The generated structured and natural prompt.
         """
         try:
-            if use_ai:
-                st_prompt = self.psystem.create_prompt_using_ai(prompt_data=prompt_data, use_ai=use_ai)
-                # Async AI Flow
-                prompt_id = str(uuid.uuid4())
-                natural = self.psystem.build_natural_prompt(
-                    prompt_data.role,
-                    prompt_data.task,
-                    prompt_data.constraints,
-                    prompt_data.output,
-                    prompt_data.personality,
-                )
+            st_prompt = self.psystem.create_prompt_using_ai(prompt_data=prompt_data)
+           
+            # Async AI Flow
+            prompt_id = str(uuid.uuid4())
+            natural = self.psystem.build_natural_prompt(
+                prompt_data.role,
+                prompt_data.task,
+                prompt_data.constraints,
+                prompt_data.output,
+                prompt_data.personality,
+            )
 
-                # Create Pending Object
-                st_prompt = PromptSchemaOutput(
-                    structured_prompt_id=prompt_id,
-                    structured_prompt=None,
-                    natural_prompt=natural,
-                    status="PENDING",
-                    details=prompt_data,
-                )
+            # Create Pending Object
+            st_prompt = PromptSchemaOutput(
+                structured_prompt_id=prompt_id,
+                structured_prompt=None,
+                natural_prompt=natural,
+                status="PENDING",
+                details=prompt_data,
+            )
 
-                # Save immediately to DB with PENDING status
-                self.save_structured_prompt(
-                    structured_prompt=st_prompt,
-                    db=db,
-                    author_id=prompt_data.author_id,
-                    original_prompt_id=prompt_data.prompt_id,
-                    prompt_id=prompt_id,
-                )
+            # Save immediately to DB with PENDING status
+            self.save_structured_prompt(
+                structured_prompt=st_prompt,
+                db=db,
+                author_id=prompt_data.author_id,
+                original_prompt_id=prompt_data.prompt_id,
+                prompt_id=prompt_id,
+            )
 
-                # Prepare and Dispatch Celery Task
-                messages = self.psystem.prepare_ai_messages(prompt_data)
-                send_prompt_to_ai.delay(messages=messages, prompt_id=prompt_id)
+            # Prepare and Dispatch Celery Task
+            messages = self.psystem.prepare_ai_messages(prompt_data)
+            send_prompt_to_ai.delay(messages=messages, prompt_id=prompt_id)
 
-                return st_prompt
-
-            else:
+            if not st_prompt:
                 # Synchronous Normal Flow
                 prompt_id = str(uuid.uuid4())
                 st_prompt = self.psystem.create_prompt_normal_way(
@@ -92,8 +91,7 @@ class RestructuredPromptService:
                     prompt_id=prompt_id,
                 )
 
-                return st_prompt
-
+            return st_prompt
         except Exception as e:
             lg.error(f"Error while creating structured_prompt: {str(e)}")
             raise e
@@ -162,65 +160,6 @@ class RestructuredPromptService:
             lg.error(f"Unexpected Error in save_prompt: {str(e)}")
             raise e
 
-    def delete_structured_prompt(self, structured_prompt_id: str, db: Session):
-        """
-        Delete a structured prompt from the database by its ID.
-        Args:
-            structured_prompt_id (str): The ID of the prompt to delete.
-            db (Session): SQLAlchemy database session.
-        Returns:
-            None
-        """
-        lg.debug("Deleting the restructured prompts.")
-        return None
-
-    def update_structured_prompt(self, structured_prompt_id: str, db: Session):
-        """
-        Update a structured prompt in the database by its ID.
-        Args:
-            structured_prompt_id (str): The ID of the prompt to update.
-            db (Session): SQLAlchemy database session.
-        Returns:
-            None
-        """
-        lg.debug("Updating the restructured prompts.")
-        return None
-
-    def delete_all_structured_prompt(self, user_id: str, db: Session):
-        """
-        Delete all structured prompts for a given user.
-        Args:
-            user_id (str): The ID of the user whose prompts should be deleted.
-            db (Session): SQLAlchemy database session.
-        Returns:
-            None
-        """
-        lg.debug("Deleting all the restructured prompts.")
-        return None
-
-    def get_all_restructured_prompt(self, db: Session):
-        """
-        Retrieve all restructured prompts from the database.
-        Args:
-            db (Session): SQLAlchemy database session.
-        Returns:
-            None
-        """
-        lg.debug("Getting all the restructured prompts.")
-        return None
-
-    def get_all_restructured_prompt_by_user_id(self, id: str, db: Session):
-        """
-        Retrieve all restructured prompts for a specific user by user ID.
-        Args:
-            id (str): The user ID.
-            db (Session): SQLAlchemy database session.
-        Returns:
-            None
-        """
-        lg.debug("Getting all the restructured prompts.")
-        return None
-
     def get_structured_prompt_by_id(
         self, prompt_id: str, db: Session
     ) -> PromptSchemaOutput:
@@ -285,16 +224,3 @@ class RestructuredPromptService:
             error_message=st_prompt_db.error_message,
             details=details,
         )
-
-    def get_one_structured_prompt_by_user_id(self, id: str, db: Session):
-        """
-        Retrieve a single structured prompt for a specific user by user ID.
-        Args:
-            id (str): The user ID.
-            db (Session): SQLAlchemy database session.
-        Returns:
-            None
-        """
-        lg.debug("Getting all the restructured prompts.")
-        return None
-

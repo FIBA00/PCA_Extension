@@ -7,26 +7,22 @@ RESTful Prompt restructing app
 import os
 import sys
 from pathlib import Path
+
 # Add the directory containing this file to the Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-
-
 from contextlib import asynccontextmanager
-
 from redis import asyncio as aioredis
-from sqladmin import Admin
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from routers import prompt, user
+# internal imports
+from routers import prompt
 from core.config import settings
 from core.middleware import register_middleware
 from core.custom_error_handlers import register_all_errors
-from auth.admin_panel import UserAdmin, PromptAdmin, StructuredPromptAdmin, AdminAuth
 
-from db.database import engine
 from utility.logger import get_logger
 
 lg = get_logger(script_path=__file__)
@@ -83,6 +79,7 @@ app = FastAPI(
 
 # Use lifespan instead of deprecated startup event
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     redis = aioredis.from_url(
@@ -114,9 +111,6 @@ Instrumentator().instrument(app).expose(app)
 app.include_router(
     router=prompt.router, prefix=f"/api/{settings.VERSION or version}", tags=["prompts"]
 )
-app.include_router(
-    router=user.router, prefix=f"/api/{settings.VERSION or version}", tags=["user"]
-)
 
 
 app.mount(
@@ -124,16 +118,3 @@ app.mount(
     app=StaticFiles(directory=STATIC_FRONTEND_DIR, html=True),
     name="frontend",
 )
-
-# Admin Interface
-authentication_backend = AdminAuth(secret_key=settings.JWT_SECRET_KEY)
-
-admin = Admin(
-    app=app,
-    engine=engine,
-    authentication_backend=authentication_backend,
-    templates_dir=TEMPLATES_DIR,
-)
-admin.add_view(UserAdmin)
-admin.add_view(PromptAdmin)
-admin.add_view(StructuredPromptAdmin)

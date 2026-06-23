@@ -65,9 +65,7 @@ class PromptSystem:
             {"role": "user", "content": natural_base},
         ]
 
-    def create_prompt_using_ai(
-        self, prompt_data: PromptSchema, use_ai: bool = False
-    ) -> PromptSchemaOutput:
+    def create_prompt_using_ai(self, prompt_data: PromptSchema) -> PromptSchemaOutput:
         """
         Generate a structured and natural prompt using an AI model (e.g., OllamaClient).
         Args:
@@ -85,11 +83,7 @@ class PromptSystem:
             prompt_data.personality,
         )
 
-        # If use_ai is False, don't attempt AI generation
-        if not use_ai:
-            lg.debug("AI generation disabled. Using normal prompt generation.")
-            return self.create_prompt_normal_way(prompt_data)
-
+        result = None
         try:
             # TODO: add option for changing client in the future for openai or custom ai.
             client = OllamaClient(
@@ -122,12 +116,16 @@ class PromptSystem:
 
             # For now, we populate 'structured_prompt' with the AI Version
             # and keep 'natural_prompt' as the baseline assembled version
-            return PromptSchemaOutput(
+            result = PromptSchemaOutput(
                 structured_prompt=ai_content,
                 natural_prompt=natural_base,
                 details=prompt_data,
             )
-
+            if not result:
+                # If use_ai is False, don't attempt AI generation
+                lg.debug("AI generation disabled. Using normal prompt generation.")
+                result = self.create_prompt_normal_way(prompt_data)
+            return result
         except Exception as e:
             lg.error(f"Error in create prompt using ai: {str(e)}")
             return self.create_prompt_normal_way(prompt_data)

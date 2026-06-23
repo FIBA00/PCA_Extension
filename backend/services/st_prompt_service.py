@@ -7,7 +7,7 @@ from core.schemas import PromptSchema, PromptSchemaOutput
 from utility.logger import get_logger
 
 from systems.prompt_system import PromptSystem
-# from core.celery_tasks import send_prompt_to_ai  # commented out - async AI flow disabled
+from core.celery_tasks import send_prompt_to_ai
 
 lg = get_logger(script_path=__file__)
 
@@ -31,64 +31,31 @@ class RestructuredPromptService:
         prompt_data: PromptSchema,
     ):
         """
-        Create a structured prompt using the provided prompt data and save it to the database.
-        This method first saves a placeholder (None) and then generates the structured prompt using PromptSystem.
+        Create a structured prompt. Tries AI generation first,
+        falls back to functional template if AI fails.
         Args:
             db (Session): SQLAlchemy database session.
             prompt_data (PromptSchema): Data required to generate the prompt.
-            use_ai (bool): Whether to use AI for prompt generation.
         Returns:
             PromptSchemaOutput: The generated structured and natural prompt.
         """
+        prompt_id = str(uuid.uuid4())
+
+        # Try AI-powered generation first
         try:
-            # st_prompt = self.psystem.create_prompt_using_ai(prompt_data=prompt_data)
+            st_prompt = self.psystem.create_prompt_using_ai(prompt_data=prompt_data)
+            if st_prompt and st_prompt.structured_prompt:
+                st_prompt.structured_prompt_id = prompt_id
+                lg.info(f"AI prompt generation succeeded for {prompt_id}")
+                return st_prompt
+            lg.warning("AI returned empty result, falling back to functional flow.")
+        except Exception as e:
+            lg.warning(f"AI prompt generation failed, falling back to functional: {e}")
 
-            # # Async AI Flow
-            # prompt_id = str(uuid.uuid4())
-            # natural = self.psystem.build_natural_prompt(
-            #     prompt_data.role,
-            #     prompt_data.task,
-            #     prompt_data.constraints,
-            #     prompt_data.output,
-            #     prompt_data.personality,
-            # )
-
-            # # Create Pending Object
-            # st_prompt = PromptSchemaOutput(
-            #     structured_prompt_id=prompt_id,
-            #     structured_prompt=None,
-            #     natural_prompt=natural,
-            #     status="PENDING",
-            #     details=prompt_data,
-            # )
-
-            # # Save immediately to DB with PENDING status
-            # # self.save_structured_prompt(
-            # #     structured_prompt=st_prompt,
-            # #     db=db,
-            # #     author_id=prompt_data.author_id,
-            # #     original_prompt_id=prompt_data.prompt_id,
-            # #     prompt_id=prompt_id,
-            # # )
-
-            # # Prepare and Dispatch Celery Task
-            # messages = self.psystem.prepare_ai_messages(prompt_data)
-            # send_prompt_to_ai.delay(messages=messages, prompt_id=prompt_id)
-
-            # if not st_prompt:
-            # Synchronous Normal Flow
-            prompt_id = str(uuid.uuid4())
+        # Fallback: functional template-based restructuring
+        try:
             st_prompt = self.psystem.create_prompt_normal_way(prompt_data=prompt_data)
             st_prompt.structured_prompt_id = prompt_id
-
-            # self.save_structured_prompt(
-            #     structured_prompt=st_prompt,
-            #     db=db,
-            #     author_id=prompt_data.author_id,
-            #     original_prompt_id=prompt_data.prompt_id,
-            #     prompt_id=prompt_id,
-            # )
-
             return st_prompt
         except Exception as e:
             lg.error(f"Error while creating structured_prompt: {str(e)}")

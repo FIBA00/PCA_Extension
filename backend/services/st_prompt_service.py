@@ -42,7 +42,7 @@ class RestructuredPromptService:
         """
         try:
             st_prompt = self.psystem.create_prompt_using_ai(prompt_data=prompt_data)
-           
+            
             # Async AI Flow
             prompt_id = str(uuid.uuid4())
             natural = self.psystem.build_natural_prompt(
@@ -63,13 +63,13 @@ class RestructuredPromptService:
             )
 
             # Save immediately to DB with PENDING status
-            self.save_structured_prompt(
-                structured_prompt=st_prompt,
-                db=db,
-                author_id=prompt_data.author_id,
-                original_prompt_id=prompt_data.prompt_id,
-                prompt_id=prompt_id,
-            )
+            # self.save_structured_prompt(
+            #     structured_prompt=st_prompt,
+            #     db=db,
+            #     author_id=prompt_data.author_id,
+            #     original_prompt_id=prompt_data.prompt_id,
+            #     prompt_id=prompt_id,
+            # )
 
             # Prepare and Dispatch Celery Task
             messages = self.psystem.prepare_ai_messages(prompt_data)

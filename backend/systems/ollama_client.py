@@ -1,4 +1,3 @@
-import os
 import re
 import json
 import requests
@@ -52,7 +51,6 @@ class OllamaClient:
         except requests.RequestException as e:
             return {"error": str(e)}
 
-   
     def _parse_streaming_response(self, response):
         """Yields content chunks from a streaming response"""
         for line in response.iter_lines():

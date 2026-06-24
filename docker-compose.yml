@@ -26,7 +26,6 @@ services:
             - DATABASE_PORT=5432
             - DATABASE_NAME=promptcrafter_app_db_local
             - REDIS_URL=redis://redis:6379
-            - GOOGLE_REDIRECT_URI=https://postgres.southafricanorth.cloudapp.azure.com/auth/google/callback
         networks:
             - app_network
         volumes:

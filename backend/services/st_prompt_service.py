@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-
+from fastapi import HTTPException
 from db.models import StructuredPrompts
 from core.schemas import PromptSchema, PromptSchemaOutput
 from utility.logger import get_logger
@@ -48,10 +48,15 @@ class RestructuredPromptService:
                 st_prompt.structured_prompt_id = prompt_id
                 lg.info(f"AI prompt generation succeeded for {prompt_id}")
                 return st_prompt
+            else:
+                lg.error("AI prompt generation failed")
+                raise HTTPException(status_code=500, detail="AI generation failed")
+
             lg.warning("AI returned empty result, falling back to functional flow.")
         except Exception as e:
             lg.warning(f"AI prompt generation failed, falling back to functional: {e}")
-
+            raise
+       
         # Fallback: functional template-based restructuring
         try:
             st_prompt = self.psystem.create_prompt_normal_way(prompt_data=prompt_data)

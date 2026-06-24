@@ -106,7 +106,8 @@ class PromptSystem:
             }
 
             response = client.generate_chat_completion(payload)
-
+            if isinstance(response, dict) and "error" in response:
+                raise RuntimeError(response["error"])
             # Extract content from response (assuming OpenAI format as implied by endpoint structure)
             if "choices" in response and len(response["choices"]) > 0:
                 ai_content = response["choices"][0]["message"]["content"]

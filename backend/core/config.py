@@ -17,9 +17,6 @@ class Settings(BaseSettings):
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_URL: str = "redis://localhost:6379/0"
-    GOOGLE_CLIENT_ID: str
-    GOOGLE_CLIENT_SECRET: str
-    GOOGLE_REDIRECT_URI: str
     OLLAMA_HOST: str
     OLLAMA_MODEL: str
     OLLAMA_TIMEOUT: int

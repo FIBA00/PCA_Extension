@@ -93,6 +93,8 @@ class StructuredPrompts(Base):
     structured_prompt = Column(String)
     natural_prompt = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    status = Column(String, default="PENDING")
+    error_message = Column(String, nullable=True)
 
     # Foreign Keys
     author_id = Column(String, ForeignKey("users.user_id"))

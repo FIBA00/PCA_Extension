@@ -2,6 +2,7 @@ from jwt.exceptions import PyJWTError as JWTError
 from fastapi import Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer, HTTPBearer
 from fastapi.security.http import HTTPAuthorizationCredentials
+from typing import Optional
 
 from utility.logger import get_logger
 from core.config import settings
@@ -16,7 +17,8 @@ from auth.oauth2 import decode_access_token
 
 lg = get_logger(__file__)
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=True)
+optional_security = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
@@ -42,6 +44,27 @@ def get_current_user(
         return token_data
     except JWTError:
         raise credentials_exception
+
+
+def get_optional_current_user(
+    creds: Optional[HTTPAuthorizationCredentials] = Depends(optional_security),
+) -> Optional[TokenData]:
+    if creds is None:
+        return None
+    try:
+        payload = decode_access_token(creds.credentials)
+        user_id: str = payload.get("user_id")
+        if user_id is None:
+            return None
+
+        token_data = TokenData(
+            user_id=user_id,
+            is_admin=payload.get("is_admin", False),
+            is_verified=payload.get("is_verified", False),
+        )
+        return token_data
+    except JWTError:
+        return None
 
 
 def get_current_active_user(

@@ -20,11 +20,11 @@ services:
         env_file:
             - backend/.env
         environment:
-            - DATABASE_USERNAME=fraold
-            - DATABASE_PASSWORD=1234fraol
+            - DATABASE_USERNAME=postgres
+            - DATABASE_PASSWORD=123456789
             - DATABASE_HOSTNAME=postgres
             - DATABASE_PORT=5432
-            - DATABASE_NAME=promptcrafter_db_local
+            - DATABASE_NAME=promptcrafter_app_db_local
             - REDIS_URL=redis://redis:6379
         networks:
             - app_network
@@ -45,11 +45,11 @@ services:
         env_file:
             - backend/.env
         environment:
-            - DATABASE_USERNAME=fraold
-            - DATABASE_PASSWORD=1234fraol
+            - DATABASE_USERNAME=postgres
+            - DATABASE_PASSWORD=123456789
             - DATABASE_HOSTNAME=postgres
             - DATABASE_PORT=5432
-            - DATABASE_NAME=promptcrafter_db_local
+            - DATABASE_NAME=promptcrafter_app_db_local
             - REDIS_URL=redis://redis:6379
         networks:
             - app_network
@@ -60,9 +60,9 @@ services:
         image: postgres:15
         container_name: promptcrafter_db
         environment:
-            - POSTGRES_USER=fraold
-            - POSTGRES_PASSWORD=1234fraol
-            - POSTGRES_DB=promptcrafter_db_local
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=123456789
+            - POSTGRES_DB=promptcrafter_app_db_local
         volumes:
             - postgres_data:/var/lib/postgresql/data
         ports:
@@ -71,10 +71,11 @@ services:
             - app_network
         healthcheck:
             test:
-                ["CMD-SHELL", "pg_isready -U fraold -d promptcrafter_db_local"]
+                ["CMD-SHELL", "pg_isready -U postgres -d promptcrafter_app_db_local"]
             interval: 5s
             timeout: 5s
-            retries: 5
+            retries: 10
+            start_period: 10s
 
     redis:
         image: redis:alpine
@@ -128,7 +129,7 @@ services:
         image: prometheuscommunity/postgres-exporter:v0.15.0
         container_name: postgres-exporter
         environment:
-            - DATA_SOURCE_NAME=postgresql://fraold:1234fraol@postgres:5432/promptcrafter_db_local?sslmode=disable
+            - DATA_SOURCE_NAME=postgresql://postgres:123456789@postgres:5432/promptcrafter_app_db_local?sslmode=disable
         networks:
             - app_network
         restart: unless-stopped

@@ -5,11 +5,21 @@ const resultMeta = document.getElementById("resultMeta");
 const scrollToForm = document.querySelector("[data-scroll-to-form]");
 const scrollToInfo = document.querySelector("[data-scroll-to-info]");
 const presetToolbars = document.querySelectorAll(".preset-toolbar");
-const copyPromptBtn = document.querySelector("btn-copy-prompt");
-const loginBtn = document.querySelector("login-btn");
+const copyPromptBtn = document.getElementById("btn-copy-prompt");
 
 
-const BASE_API = "api/v1/pcrafter";
+const API_VERSION = "v1.1";
+const API_ROOT = `api/${API_VERSION}`;
+const PROMPT_API = `${API_ROOT}/pcrafter`;
+
+function showToast(message) {
+    loginToast.textContent = message;
+    loginToast.classList.add("show");
+    window.setTimeout(() => {
+        loginToast.classList.remove("show");
+    }, 2500);
+}
+
 
 scrollToForm?.addEventListener("click", () => {
     document.getElementById("formSection")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -21,9 +31,6 @@ scrollToInfo?.addEventListener("click", () => {
 
 // render form for user input
 
-// loginBtn.addEventListener("click", () => {
-//     docuement
-// })
 
 presetToolbars.forEach((toolbar) => {
     toolbar.addEventListener("click", (event) => {
@@ -56,6 +63,7 @@ function renderEmpty() {
     <p class="empty-state">No prompt yet. Fill the form to see the structured content.</p>
   `;
     resultMeta.innerText = "";
+    window.currentPrompts = null;
 }
 
 form?.addEventListener("submit", async (event) => {
@@ -82,7 +90,7 @@ form?.addEventListener("submit", async (event) => {
     resultMeta.innerHTML = "";
 
     try {
-        const response = await fetch(`${BASE_API}/process`, {
+        const response = await fetch(`${PROMPT_API}/process`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -91,15 +99,44 @@ form?.addEventListener("submit", async (event) => {
         });
 
         if (!response.ok) {
-            throw new Error("Server rejected the prompt");
+            if (response.status === 429) {
+                const data = await response.json();
+                modalMessage.textContent = data.detail;
+                loginModal.style.display = "block";
+                return;
+            } else {
+                throw new Error("Server rejected the prompt");
+            }
         }
 
         const data = await response.json();
         renderResult(data.structured_prompt, data.natural_prompt);
+        window.currentPrompts = {
+            structured: data.structured_prompt,
+            natural: data.natural_prompt
+        };
     } catch (error) {
         resultDisplay.innerHTML = `<p class='empty-state'>${error.message}</p>`;
         resultMeta.innerHTML = "";
+        window.currentPrompts = null;
     }
 });
 
-renderEmpty();
+copyPromptBtn.addEventListener("click", () => {
+    const selected = document.querySelector('input[name="copy-option"]:checked').value;
+    const text = window.currentPrompts ? window.currentPrompts[selected] : "";
+    if (text) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert("Prompt copied to clipboard!");
+        }).catch(err => {
+            console.error("Failed to copy: ", err);
+            alert("Failed to copy prompt");
+        });
+    } else {
+        alert("No prompt to copy");
+    }
+});
+
+closeBtn.addEventListener("click", () => {
+    loginModal.style.display = "none";
+});

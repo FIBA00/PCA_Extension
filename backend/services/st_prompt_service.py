@@ -1,10 +1,13 @@
 import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+
 from db.models import StructuredPrompts
 from core.schemas import PromptSchema, PromptSchemaOutput
 from utility.logger import get_logger
-from core.ollama_client import OllamaClient
+
+from systems.prompt_system import PromptSystem
+from core.celery_tasks import send_prompt_to_ai
 
 lg = get_logger(script_path=__file__)
 
@@ -23,38 +26,40 @@ class RestructuredPromptService:
         self.psystem = PromptSystem()
 
     def create_structured_prompt(
-        self, db: Session, prompt_data: PromptSchema, use_ai: bool = False
+        self,
+        db: Session,
+        prompt_data: PromptSchema,
     ):
         """
-        Create a structured prompt using the provided prompt data and save it to the database.
-        This method first saves a placeholder (None) and then generates the structured prompt using PromptSystem.
+        Create a structured prompt. Tries AI generation first,
+        falls back to functional template if AI fails.
         Args:
             db (Session): SQLAlchemy database session.
             prompt_data (PromptSchema): Data required to generate the prompt.
-            use_ai (bool): Whether to use AI for prompt generation.
         Returns:
             PromptSchemaOutput: The generated structured and natural prompt.
         """
+        prompt_id = str(uuid.uuid4())
+
+        # Try AI-powered generation first
         try:
-            # TODO: Migrate the database driver to async because this method alone requires async job.
-            if use_ai:
-                st_prompt = self.psystem.create_prompt_using_ai(prompt_data=prompt_data)
-            else:
-                st_prompt = self.psystem.create_prompt_normal_way(
-                    prompt_data=prompt_data
-                )
+            st_prompt = self.psystem.create_prompt_using_ai(prompt_data=prompt_data)
+            if st_prompt and st_prompt.structured_prompt:
+                st_prompt.structured_prompt_id = prompt_id
+                lg.info(f"AI prompt generation succeeded for {prompt_id}")
+                return st_prompt
+            lg.warning("AI returned empty result, falling back to functional flow.")
+        except Exception as e:
+            lg.warning(f"AI prompt generation failed, falling back to functional: {e}")
 
-            self.save_structured_prompt(
-                structured_prompt=st_prompt,
-                db=db,
-                author_id=prompt_data.author_id,
-                original_prompt_id=prompt_data.prompt_id,
-            )
-
+        # Fallback: functional template-based restructuring
+        try:
+            st_prompt = self.psystem.create_prompt_normal_way(prompt_data=prompt_data)
+            st_prompt.structured_prompt_id = prompt_id
             return st_prompt
-
         except Exception as e:
             lg.error(f"Error while creating structured_prompt: {str(e)}")
+            raise e
 
     def save_structured_prompt(
         self,
@@ -62,6 +67,7 @@ class RestructuredPromptService:
         db: Session,
         author_id: str = None,
         original_prompt_id: str = None,
+        prompt_id: str = None,
     ):
         """
         Save a structured prompt to the database.
@@ -70,6 +76,7 @@ class RestructuredPromptService:
             db (Session): SQLAlchemy database session.
             author_id (str): The ID of the author.
             original_prompt_id (str): The ID of the original prompt (optional).
+            prompt_id (str): Explicit Prompt ID (optional)
         Returns:
             PromptSchemaOutput: The validated prompt object after saving.
         Raises:
@@ -84,8 +91,14 @@ class RestructuredPromptService:
             if "details" in st_prompt_dict:
                 del st_prompt_dict["details"]
 
-            # Generate new PK for structured_prompts table
-            st_prompt_dict["prompt_id"] = str(uuid.uuid4())
+            # Remove structured_prompt_id as DB uses prompt_id
+            if "structured_prompt_id" in st_prompt_dict:
+                del st_prompt_dict["structured_prompt_id"]
+
+            # Generate new PK or use provided for structured_prompts table
+            st_prompt_dict["prompt_id"] = (
+                str(prompt_id) if prompt_id else str(uuid.uuid4())
+            )
 
             # Assign foreign keys
             if author_id:
@@ -112,210 +125,67 @@ class RestructuredPromptService:
             lg.error(f"Unexpected Error in save_prompt: {str(e)}")
             raise e
 
-    def delete_structured_prompt(self, structured_prompt_id: str, db: Session):
+    def get_structured_prompt_by_id(
+        self, prompt_id: str, db: Session
+    ) -> PromptSchemaOutput:
         """
-        Delete a structured prompt from the database by its ID.
+        Retrieve a single structured prompt by its Prompt ID (UUID).
         Args:
-            structured_prompt_id (str): The ID of the prompt to delete.
+            prompt_id (str): The structured prompt ID.
             db (Session): SQLAlchemy database session.
         Returns:
-            None
+            PromptSchemaOutput: The structure prompt object or None.
         """
-        lg.debug("Deleting the restructured prompts.")
-        return None
-
-    def update_structured_prompt(self, structured_prompt_id: str, db: Session):
-        """
-        Update a structured prompt in the database by its ID.
-        Args:
-            structured_prompt_id (str): The ID of the prompt to update.
-            db (Session): SQLAlchemy database session.
-        Returns:
-            None
-        """
-        lg.debug("Updating the restructured prompts.")
-        return None
-
-    def delete_all_structured_prompt(self, user_id: str, db: Session):
-        """
-        Delete all structured prompts for a given user.
-        Args:
-            user_id (str): The ID of the user whose prompts should be deleted.
-            db (Session): SQLAlchemy database session.
-        Returns:
-            None
-        """
-        lg.debug("Deleting all the restructured prompts.")
-        return None
-
-    def get_all_restructured_prompt(self, db: Session):
-        """
-        Retrieve all restructured prompts from the database.
-        Args:
-            db (Session): SQLAlchemy database session.
-        Returns:
-            None
-        """
-        lg.debug("Getting all the restructured prompts.")
-        return None
-
-    def get_all_restructured_prompt_by_user_id(self, id: str, db: Session):
-        """
-        Retrieve all restructured prompts for a specific user by user ID.
-        Args:
-            id (str): The user ID.
-            db (Session): SQLAlchemy database session.
-        Returns:
-            None
-        """
-        lg.debug("Getting all the restructured prompts.")
-        return None
-
-    def get_one_structured_prompt_by_user_id(self, id: str, db: Session):
-        """
-        Retrieve a single structured prompt for a specific user by user ID.
-        Args:
-            id (str): The user ID.
-            db (Session): SQLAlchemy database session.
-        Returns:
-            None
-        """
-        lg.debug("Getting all the restructured prompts.")
-        return None
-
-
-class PromptSystem:
-    """
-    System for generating structured and natural prompts from user input.
-    Provides methods for both functional and AI-based prompt creation.
-    """
-
-    def create_prompt_normal_way(self, prompt_data: PromptSchema) -> PromptSchemaOutput:
-        """
-        Generate a structured and natural prompt using functional template rendering.
-        Args:
-            prompt_data (PromptSchema): The input data for prompt creation.
-        Returns:
-            PromptSchemaOutput: The structured and natural prompt output.
-        """
-        role = prompt_data.role
-        task = prompt_data.task
-        constraints = prompt_data.constraints
-        output = prompt_data.output
-        personality = prompt_data.personality
-
-        structured = self.build_structured_prompt(
-            role=role,
-            task=task,
-            constraints=constraints,
-            output=output,
-            personality=personality,
+        st_prompt_db = (
+            db.query(StructuredPrompts)
+            .filter(StructuredPrompts.prompt_id == prompt_id)
+            .first()
         )
-        natural = self.build_natural_prompt(
-            role=role,
-            task=task,
-            constraints=constraints,
-            output=output,
-            personality=personality,
+        if not st_prompt_db:
+            return None
+
+        # Reconstruct PromptSchema for details
+        # Note: We need to fetch original prompt info?
+        # The schema requires details: PromptSchema.
+        # But StructuredPrompts database model might imply we can reach original prompt via relationship.
+        # `st_prompt_db.original_prompt` should be available if relationship is loaded.
+
+        details = PromptSchema(
+            prompt_id=st_prompt_db.original_prompt.prompt_id
+            if st_prompt_db.original_prompt
+            else None,
+            author_id=st_prompt_db.author_id,
+            created_at=st_prompt_db.original_prompt.created_at
+            if st_prompt_db.original_prompt
+            else None,
+            title=st_prompt_db.original_prompt.title
+            if st_prompt_db.original_prompt
+            else None,
+            role=st_prompt_db.original_prompt.role
+            if st_prompt_db.original_prompt
+            else None,
+            task=st_prompt_db.original_prompt.task
+            if st_prompt_db.original_prompt
+            else None,
+            output=st_prompt_db.original_prompt.output
+            if st_prompt_db.original_prompt
+            else None,
+            tags=st_prompt_db.original_prompt.tags
+            if st_prompt_db.original_prompt
+            else [],
+            constraints=st_prompt_db.original_prompt.constraints
+            if st_prompt_db.original_prompt
+            else None,
+            personality=st_prompt_db.original_prompt.personality
+            if st_prompt_db.original_prompt
+            else None,
         )
+
         return PromptSchemaOutput(
-            structured_prompt=structured, natural_prompt=natural, details=prompt_data
+            structured_prompt_id=st_prompt_db.prompt_id,
+            structured_prompt=st_prompt_db.structured_prompt,
+            natural_prompt=st_prompt_db.natural_prompt,
+            status=st_prompt_db.status or "COMPLETED",  # Default for old records
+            error_message=st_prompt_db.error_message,
+            details=details,
         )
-
-    def create_prompt_using_ai(self, prompt_data: PromptSchema) -> PromptSchemaOutput:
-        """
-        Generate a structured and natural prompt using an AI model (e.g., OllamaClient).
-        Args:
-            prompt_data (PromptSchema): The input data for prompt creation.
-        Returns:
-            PromptSchemaOutput: The structured and natural prompt output.
-        """
-        # Fallback to normal way if anything goes wrong or for comparison
-        natural_base = self.build_natural_prompt(
-            prompt_data.role,
-            prompt_data.task,
-            prompt_data.constraints,
-            prompt_data.output,
-            prompt_data.personality,
-        )
-
-        try:
-            client = OllamaClient()
-
-            system_instruction = (
-                "You are an expert prompt engineer. Refine the following user request into a clear, "
-                "structured, and highly effective prompt. Return ONLY the improved prompt text."
-            )
-
-            payload = {
-                "messages": [
-                    {"role": "system", "content": system_instruction},
-                    {"role": "user", "content": natural_base},
-                ],
-                "stream": False,
-            }
-
-            response = client.generate_chat_completion(payload)
-
-            # Extract content from response (assuming OpenAI format as implied by endpoint structure)
-            if "choices" in response and len(response["choices"]) > 0:
-                ai_content = response["choices"][0]["message"]["content"]
-            else:
-                lg.warning(f"Unexpected AI response format: {response}")
-                return self.create_prompt_normal_way(prompt_data)
-
-            # For now, we populate 'structured_prompt' with the AI Version
-            # and keep 'natural_prompt' as the baseline assembled version
-            return PromptSchemaOutput(
-                structured_prompt=ai_content,
-                natural_prompt=natural_base,
-                details=prompt_data,
-            )
-
-        except Exception as e:
-            lg.error(f"Error in create_prompt_using_ai: {str(e)}")
-            return self.create_prompt_normal_way(prompt_data)
-
-    def build_structured_prompt(self, role, task, constraints, output, personality):
-        """
-        Build a structured prompt string from the provided components.
-        Args:
-            role (str): The role or contextual setting.
-            task (str): The objective or task.
-            constraints (str): Constraints and resources.
-            output (str): Preferred output style.
-            personality (str): Personal touch/personality.
-        Returns:
-            str: The formatted structured prompt.
-        """
-        return f"""
-    [1. ROLE or CONTEXTUAL SETTING]: Imagine you are a {role}.
-
-    [2. OBJECTIVE or TASK]: I want you to help me {task}.
-    [3. CONSTRAINTS & RESOURCES]: Here’s what I already have / can't do / must consider:
-    {constraints}
-
-    [4. PREFERRED OUTPUT STYLE]: I want the response to be in {output}.
-
-    [5. BONUS – PERSONAL TOUCH]: Think like {personality}.
-    """.strip()
-
-    def build_natural_prompt(self, role, task, constraints, output, personality):
-        """
-        Build a natural language prompt string from the provided components.
-        Args:
-            role (str): The role or contextual setting.
-            task (str): The objective or task.
-            constraints (str): Constraints and resources.
-            output (str): Preferred output style.
-            personality (str): Personal touch/personality.
-        Returns:
-            str: The formatted natural prompt.
-        """
-        return f"""
-    Imagine you are {role}.
-    I want you to help me {task}.
-    Constraints: {constraints}
-    Output: {output}
-    Act like {personality}.
-    """.strip()

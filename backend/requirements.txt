@@ -28,6 +28,8 @@ asgiref==3.11.1
     # via backend (pyproject.toml)
 async-timeout==5.0.1
     # via aioredis
+authlib==1.6.7
+    # via backend (pyproject.toml)
 babel==2.18.0
     # via fastapi-admin
 bcrypt==5.0.0
@@ -94,6 +96,24 @@ fastapi-mail==1.6.1
     # via backend (pyproject.toml)
 fastar==0.8.0
     # via fastapi-cloud-cli
+google-api-core==2.29.0
+    # via google-api-python-client
+google-api-python-client==2.189.0
+    # via backend (pyproject.toml)
+google-auth==2.48.0
+    # via
+    #   google-api-core
+    #   google-api-python-client
+    #   google-auth-httplib2
+    #   google-auth-oauthlib
+google-auth-httplib2==0.3.0
+    # via
+    #   backend (pyproject.toml)
+    #   google-api-python-client
+google-auth-oauthlib==1.2.4
+    # via backend (pyproject.toml)
+googleapis-common-protos==1.72.0
+    # via google-api-core
 greenlet==3.3.1
     # via sqlalchemy
 gunicorn==25.0.1
@@ -106,6 +126,10 @@ hiredis==3.3.0
     # via aioredis
 httpcore==1.0.9
     # via httpx
+httplib2==0.31.2
+    # via
+    #   google-api-python-client
+    #   google-auth-httplib2
 httptools==0.7.1
     # via uvicorn
 httpx==0.28.1
@@ -144,6 +168,8 @@ markupsafe==3.0.3
     #   wtforms
 mdurl==0.1.2
     # via markdown-it-py
+oauthlib==3.3.1
+    # via requests-oauthlib
 orjson==3.11.6
     # via fastapi
 packaging==26.0
@@ -163,8 +189,21 @@ prometheus-fastapi-instrumentator==7.1.0
     # via backend (pyproject.toml)
 prompt-toolkit==3.0.52
     # via click-repl
+proto-plus==1.27.1
+    # via google-api-core
+protobuf==6.33.5
+    # via
+    #   google-api-core
+    #   googleapis-common-protos
+    #   proto-plus
 psycopg2-binary==2.9.11
     # via backend (pyproject.toml)
+pyasn1==0.6.2
+    # via
+    #   pyasn1-modules
+    #   rsa
+pyasn1-modules==0.4.2
+    # via google-auth
 pycparser==3.0
     # via cffi
 pydantic==2.12.5
@@ -190,6 +229,8 @@ pygments==2.19.2
     #   rich
 pyjwt==2.11.0
     # via backend (pyproject.toml)
+pyparsing==3.3.2
+    # via httplib2
 pypika-tortoise==0.6.3
     # via tortoise-orm
 pytest==9.0.3
@@ -230,6 +271,8 @@ rich-toolkit==0.18.1
     #   fastapi-cloud-cli
 rignore==0.7.6
     # via fastapi-cloud-cli
+rsa==4.9.1
+    # via google-auth
 sentry-sdk==2.51.0
     # via fastapi-cloud-cli
 shellingham==1.5.4

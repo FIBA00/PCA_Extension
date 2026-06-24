@@ -93,8 +93,11 @@ class PromptSystem:
             )
 
             system_instruction = (
-                "You are an expert prompt engineer. Refine the following user request into a clear, "
-                "structured, and highly effective prompt. Return ONLY the improved prompt text."
+                "You are an expert prompt engineer. "
+                "Refine the user's request into a structured prompt. "
+                "Keep the output concise and practical. "
+                "Maximum 300 words. "
+                "Return ONLY the final prompt."
             )
 
             payload = {
@@ -103,10 +106,13 @@ class PromptSystem:
                     {"role": "user", "content": natural_base},
                 ],
                 "stream": False,
+                "max_tokens": 300,
+                "temperature": 0.4,
             }
 
             response = client.generate_chat_completion(payload)
-
+            if isinstance(response, dict) and "error" in response:
+                raise RuntimeError(response["error"])
             # Extract content from response (assuming OpenAI format as implied by endpoint structure)
             if "choices" in response and len(response["choices"]) > 0:
                 ai_content = response["choices"][0]["message"]["content"]

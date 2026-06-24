@@ -68,7 +68,10 @@ click-plugins==1.1.1.2
 click-repl==0.3.0
     # via celery
 cryptography==46.0.7
-    # via fastapi-mail
+    # via
+    #   authlib
+    #   fastapi-mail
+    #   google-auth
 dnspython==2.8.0
     # via email-validator
 email-validator==2.3.0
@@ -260,7 +263,12 @@ redis==4.6.0
 regex==2025.11.3
     # via fastapi-mail
 requests==2.33.0
-    # via backend (pyproject.toml)
+    # via
+    #   backend (pyproject.toml)
+    #   google-api-core
+    #   requests-oauthlib
+requests-oauthlib==2.0.0
+    # via google-auth-oauthlib
 rich==14.3.2
     # via
     #   rich-toolkit
@@ -325,6 +333,8 @@ tzlocal==5.3.1
     # via celery
 ujson==5.12.1
     # via fastapi
+uritemplate==4.2.0
+    # via google-api-python-client
 urllib3==2.7.0
     # via
     #   requests

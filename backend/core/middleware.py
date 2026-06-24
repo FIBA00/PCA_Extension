@@ -25,5 +25,13 @@ def register_middleware(app: FastAPI):
         allow_credentials=True,
     )
     app.add_middleware(
-        TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"]
+        TrustedHostMiddleware,
+        allowed_hosts=[
+            "localhost",
+            "127.0.0.1",
+            "testserver",
+            "*.southafricanorth.cloudapp.azure.com",
+            "*.promptcrafter.com",
+            "www.promptcrafter.com",
+        ],
     )
